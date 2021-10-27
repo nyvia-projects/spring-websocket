@@ -1,31 +1,28 @@
 package com.example.springwebsocket.common.message;
 
+import com.example.springwebsocket.storage.UserStorage;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 public class ChatMessageController {
 
-    /**
-     * Registers and Sends Message
-     * */
+    @Autowired
+    private SimpMessagingTemplate simpMessagingTemplate;
 
-    @MessageMapping("/chat.register")
-    @SendTo("/topic/public")
-    public ChatMessage registerUser(@Payload ChatMessage chatMessage, SimpMessageHeaderAccessor simpMessageHeaderAccessor) {
-        simpMessageHeaderAccessor.getSessionAttributes()
-                .put("username", chatMessage.getSender());
-        return chatMessage;
+    @MessageMapping("/chat/{to}")
+    public void sendMessage (@DestinationVariable String to, ChatMessage message) {
 
-    }
-
-    @MessageMapping("/chat.send")
-    @SendTo("/topic/public")
-    public ChatMessage sendMessage(@Payload ChatMessage chatMessage) {
-        return chatMessage;
+        System.out.println("handling send message: " + message + " to: " + to);
+        boolean isExists = UserStorage.getInstance().getUsers().contains(to);
+        if (isExists)
+            simpMessagingTemplate.convertAndSend("/topic/messages/" + to, message);
     }
 }
